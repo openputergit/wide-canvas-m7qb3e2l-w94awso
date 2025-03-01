@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Performance Analysis System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+</head>
+<style>
+    * {
+        font-family: 'Inter', sans-serif;
+    }
+    .performance-chart {
+        height: 200px;
+        position: relative;
+    }
+    .chart-bar {
+        width: 30px;
+        position: absolute;
+        bottom: 0;
+        transition: height 0.3s ease;
+    }
+</style>
+<body class="bg-gray-50">
+    <div id="loginPage" class="min-h-screen flex items-center justify-center">
+        <div class="bg-white p-8 rounded-lg shadow-lg w-96">
+            <h2 class="text-2xl font-bold mb-6 text-center text-blue-600">Student Performance Analysis System</h2>
+            <div class="space-y-4">
+                <div class="flex space-x-4">
+                    <button onclick="setLoginType('student')" class="flex-1 py-2 px-4 rounded bg-blue-500 text-white hover:bg-blue-600">Student</button>
+                    <button onclick="setLoginType('admin')" class="flex-1 py-2 px-4 rounded bg-gray-500 text-white hover:bg-gray-600">Admin</button>
+                </div>
+                <input type="text" id="username" placeholder="Username" class="w-full p-2 border rounded">
+                <input type="password" id="password" placeholder="Password" class="w-full p-2 border rounded">
+                <button onclick="login()" class="w-full py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Login</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="dashboard" class="hidden">
+        <!-- Sidebar -->
+        <div class="flex">
+            <div class="w-64 h-screen bg-blue-800 text-white fixed">
+                <div class="p-4">
+                    <h2 class="text-xl font-bold mb-6">SPAS</h2>
+                    <nav id="sidebarNav" class="space-y-2">
+                        <!-- Dynamically populated -->
+                    </nav>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="ml-64 flex-1 p-8">
+                <div id="contentArea">
+                    <!-- Dynamic Content -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+let currentUser = null;
+let currentUserType = 'student';
+
+// Mock Data
+const mockData = {
+    student: {
+        profile: {
+            name: "John Doe",
+            id: "STD001",
+            course: "Computer Science",
+            email: "john@example.com"
+        },
+        attendance: {
+            percentage: 85,
+            records: [
+                { date: "2023-11-01", status: "Present" },
+                { date: "2023-11-02", status: "Present" },
+                { date: "2023-11-03", status: "Absent" }
+            ]
+        },
+        performance: {
+            subjects: {
+                "Mathematics": 85,
+                "Programming": 92,
+                "Database": 78,
+                "Networking": 88,
+                "Web Development": 95
+            }
+        },
+        examSchedule: [
+            { subject: "Mathematics", date: "2023-12-01", time: "09:00 AM" },
+            { subject: "Programming", date: "2023-12-03", time: "09:00 AM" }
+        ]
+    },
+    admin: {
+        students: [
+            { id: "STD001", name: "John Doe", course: "CS" },
+            { id: "STD002", name: "Jane Smith", course: "IT" }
+        ]
+    }
+};
+
+function setLoginType(type) {
+    currentUserType = type;
+    document.querySelectorAll('button').forEach(btn => btn.classList.remove('bg-blue-500', 'bg-gray-500'));
+    event.target.classList.add('bg-blue-500');
+}
+
+function login() {
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+
+    if (username && password) {
+        currentUser = mockData[currentUserType];
+        document.getElementById('loginPage').classList.add('hidden');
+        document.getElementById('dashboard').classList.remove('hidden');
+        setupDashboard();
+    }
+}
+
+function setupDashboard() {
+    const nav = document.getElementById('sidebarNav');
+    nav.innerHTML = '';
+
+    const menuItems = currentUserType === 'student' 
+        ? [
+            { icon: 'bi-speedometer2', text: 'Dashboard', action: 'showDashboard' },
+            { icon: 'bi-person', text: 'Profile', action: 'showProfile' },
+            { icon: 'bi-calendar-check', text: 'Attendance', action: 'showAttendance' },
+            { icon: 'bi-graph-up', text: 'Performance', action: 'showPerformance' },
+            { icon: 'bi-journal-text', text: 'Examination', action: 'showExamination' },
+            { icon: 'bi-box-arrow-right', text: 'Sign Out', action: 'signOut' }
+        ]
+        : [
+            { icon: 'bi-speedometer2', text: 'Dashboard', action: 'showAdminDashboard' },
+            { icon: 'bi-person', text: 'Profile', action: 'showProfile' },
+            { icon: 'bi-people', text: 'Student Profiles', action: 'showStudentProfiles' },
+            { icon: 'bi-calendar-check', text: 'Attendance', action: 'showAttendanceManagement' },
+            { icon: 'bi-graph-up', text: 'Marks', action: 'showMarksManagement' },
+            { icon: 'bi-file-text', text: 'Assignments', action: 'showAssignments' },
+            { icon: 'bi-calendar-event', text: 'Examination', action: 'showExamManagement' },
+            { icon: 'bi-file-earmark-text', text: 'Reports', action: 'showReports' },
+            { icon: 'bi-box-arrow-right', text: 'Sign Out', action: 'signOut' }
+        ];
+
+    menuItems.forEach(item => {
+        const button = document.createElement('button');
+        button.className = 'flex items-center space-x-2 w-full p-2 hover:bg-blue-700 rounded';
+        button.onclick = () => window[item.action]();
+        button.innerHTML = `
+            <i class="bi ${item.icon}"></i>
+            <span>${item.text}</span>
+        `;
+        nav.appendChild(button);
+    });
+
+    currentUserType === 'student' ? showDashboard() : showAdminDashboard();
+}
+
+// Student Dashboard Functions
+function showDashboard() {
+    const content = `
+        <h1 class="text-2xl font-bold mb-6">Student Dashboard</h1>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-white p-4 rounded-lg shadow">
+                <h3 class="font-semibold text-gray-600">Attendance</h3>
+                <p class="text-2xl font-bold">${mockData.student.attendance.percentage}%</p>
+            </div>
+            <div class="bg-white p-4 rounded-lg shadow">
+                <h3 class="font-semibold text-gray-600">Average Performance</h3>
+                <p class="text-2xl font-bold">88%</p>
+            </div>
+            <div class="bg-white p-4 rounded-lg shadow">
+                <h3 class="font-semibold text-gray-600">Upcoming Exams</h3>
+                <p class="text-2xl font-bold">${mockData.student.examSchedule.length}</p>
+            </div>
+            <div class="bg-white p-4 rounded-lg shadow">
+                <h3 class="font-semibold text-gray-600">Pending Assignments</h3>
+                <p class="text-2xl font-bold">2</p>
+            </div>
+        </div>
+    `;
+    document.getElementById('contentArea').innerHTML = content;
+}
+
+function showProfile() {
+    const content = `
+        <div class="bg-white p-6 rounded-lg shadow">
+            <h2 class="text-2xl font-bold mb-4">Profile</h2>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <p class="text-gray-600">Name</p>
+                    <p class="font-semibold">${mockData.student.profile.name}</p>
+                </div>
+                <div>
+                    <p class="text-gray-600">Student ID</p>
+                    <p class="font-semibold">${mockData.student.profile.id}</p>
+                </div>
+                <div>
+                    <p class="text-gray-600">Course</p>
+                    <p class="font-semibold">${mockData.student.profile.course}</p>
+                </div>
+                <div>
+                    <p class="text-gray-600">Email</p>
+                    <p class="font-semibold">${mockData.student.profile.email}</p>
+                </div>
+            </div>
+        </div>
+    `;
+    document.getElementById('contentArea').innerHTML = content;
+}
+
+function showPerformance() {
+    const subjects = mockData.student.performance.subjects;
+    const content = `
+        <div class="bg-white p-6 rounded-lg shadow">
+            <h2 class="text-2xl font-bold mb-4">Performance Analysis</h2>
+            <div class="performance-chart mb-8">
+                ${Object.entries(subjects).map((subject, index) => `
+                    <div class="chart-bar bg-blue-500" style="height: ${subject[1]}%; left: ${index * 80}px;" title="${subject[0]}: ${subject[1]}%"></div>
+                `).join('')}
+            </div>
+            <div class="mt-8">
+                <h3 class="text-xl font-semibold mb-4">Recommendations</h3>
+                <ul class="space-y-2">
+                    ${Object.entries(subjects)
+                        .filter(([_, score]) => score < 85)
+                        .map(([subject]) => `
+                            <li class="flex items-center text-orange-600">
+                                <i class="bi bi-exclamation-triangle mr-2"></i>
+                                Focus more on ${subject} to improve performance
+                            </li>
+                        `).join('')}
+                </ul>
+            </div>
+        </div>
+    `;
+    document.getElementById('contentArea').innerHTML = content;
+}
+
+function showAttendance() {
+    const content = `
+        <div class="bg-white p-6 rounded-lg shadow">
+            <h2 class="text-2xl font-bold mb-4">Attendance Record</h2>
+            <div class="mb-6">
+                <div class="w-32 h-32 rounded-full border-8 border-blue-500 flex items-center justify-center">
+                    <span class="text-3xl font-bold">${mockData.student.attendance.percentage}%</span>
+                </div>
+            </div>
+            <table class="w-full">
+                <thead>
+                    <tr class="bg-gray-50">
+                        <th class="p-2 text-left">Date</th>
+                        <th class="p-2 text-left">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${mockData.student.attendance.records.map(record => `
+                        <tr class="border-b">
+                            <td class="p-2">${record.date}</td>
+                            <td class="p-2">
+                                <span class="px-2 py-1 rounded ${record.status === 'Present' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                    ${record.status}
+                                </span>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+    document.getElementById('contentArea').innerHTML = content;
+}
+
+function showExamination() {
+    const content = `
+        <div class="bg-white p-6 rounded-lg shadow">
+            <h2 class="text-2xl font-bold mb-4">Examination Schedule</h2>
+            <table class="w-full">
+                <thead>
+                    <tr class="bg-gray-50">
+                        <th class="p-2 text-left">Subject</th>
+                        <th class="p-2 text-left">Date</th>
+                        <th class="p-2 text-left">Time</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${mockData.student.examSchedule.map(exam => `
+                        <tr class="border-b">
+                            <td class="p-2">${exam.subject}</td>
+                            <td class="p-2">${exam.date}</td>
+                            <td class="p-2">${exam.time}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+    document.getElementById('contentArea').innerHTML = content;
+}
+
+// Admin Dashboard Functions
+function showAdminDashboard() {
+    const content = `
+        <div class="bg-white p-6 rounded-lg shadow">
+            <h2 class="text-2xl font-bold mb-4">Admin Dashboard</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div class="bg-blue-50 p-4 rounded">
+                    <h3 class="font-semibold text-gray-600">Total Students</h3>
+                    <p class="text-2xl font-bold">${mockData.admin.students.length}</p>
+                </div>
+                <div class="bg-green-50 p-4 rounded">
+                    <h3 class="font-semibold text-gray-600">Average Attendance</h3>
+                    <p class="text-2xl font-bold">85%</p>
+                </div>
+                <div class="bg-yellow-50 p-4 rounded">
+                    <h3 class="font-semibold text-gray-600">Upcoming Exams</h3>
+                    <p class="text-2xl font-bold">2</p>
+                </div>
+            </div>
+            <div>
+                <h3 class="font-semibold mb-2">Recent Students</h3>
+                <table class="w-full">
+                    <thead>
+                        <tr class="bg-gray-50">
+                            <th class="p-2 text-left">ID</th>
+                            <th class="p-2 text-left">Name</th>
+                            <th class="p-2 text-left">Course</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${mockData.admin.students.map(student => `
+                            <tr class="border-b">
+                                <td class="p-2">${student.id}</td>
+                                <td class="p-2">${student.name}</td>
+                                <td class="p-2">${student.course}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+    document.getElementById('contentArea').innerHTML = content;
+}
+
+function signOut() {
+    currentUser = null;
+    document.getElementById('dashboard').classList.add('hidden');
+    document.getElementById('loginPage').classList.remove('hidden');
+    document.getElementById('username').value = '';
+    document.getElementById('password').value = '';
+}
+
+// Initialize the default view
+setLoginType('student');
+</script>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
